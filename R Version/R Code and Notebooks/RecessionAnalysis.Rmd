@@ -1,0 +1,511 @@
+---
+title: "Recession Analysis and Visualizations"
+output: flexdashboard::flex_dashboard
+---
+
+```{r Libraries, include=FALSE, message=FALSE}
+if (!require("tidyverse")) install.packages("tidyverse")
+library(tidyverse) ; theme_set(theme_classic())
+
+if (!require("DT")) install.packages("DT")
+library(DT)
+
+if (!require("Hmisc")) install.packages("Hmisc")
+library(Hmisc)
+
+if (!require("lubridate")) install.packages("lubridate")
+library(lubridate)
+
+if (!require("plotly")) install.packages("plotly")
+library(plotly)
+
+if (!require("gridExtra")) install.packages("gridExtra")
+library(gridExtra)
+
+if (!require("wesanderson")) install.packages("wesanderson")
+library(wesanderson)
+
+if (!require("viridis")) install.packages("viridis")
+library(viridis)
+
+if (!require("maps")) install.packages("maps")
+library(maps)
+
+if (!require("ggthemes")) install.packages("ggthemes")
+library(ggthemes)
+
+if (!require("shiny")) install.packages("shiny")
+library(shiny)
+
+if (!require("shinydashboard")) install.packages("shinydashboard")
+library(shinydashboard)
+
+
+if (!require("scales")) install.packages("scales")
+library(scales)
+```
+
+```{r Global Setup, include=FALSE, echo=FALSE, message=FALSE}
+
+# Setting up some global options for the knitr.
+# General principle is that local options over-ride the global.
+
+knitr::opts_chunk$set(
+	#Chunk Code Options
+	echo = FALSE, # Show the code in the output
+	include = TRUE, # Show the results in the output.
+	results = 'asis', 
+	comment = NA, 
+	prompt = FALSE,
+	
+	#Display Options
+	cache = FALSE,
+
+	# Plot Options
+	fig.width = 7,
+	fig.height = 5,
+	
+	fig.retina = 2,
+	fig.align = 'center'
+)
+
+options(digits = 4)
+
+
+```
+
+```{r Load Data, include=FALSE, echo=FALSE, message=FALSE}
+#We can use the load data command to load the data from the RData file we saved.
+
+load("~/UNCG/IAF 605/R Assignment 1/Data/RecessionData.RData")
+
+# And get its summary.
+summary(RecessionData)
+```
+
+```{r Clean Data, include = FALSE, echo = FALSE, message = FALSE}
+#Let's start by focusing in on the states of interest
+
+CAMIRecessionData <- RecessionData %>% 
+	filter((RecessionData$state == "California") | (RecessionData$state == "Massachusetts") | 
+		   	(RecessionData$state == "Florida") |								(RecessionData$state == "North Carolina"))
+
+# Remove the factors by converting to characters
+CAMIRecessionData$state <- CAMIRecessionData$state %>% as.character()
+str(CAMIRecessionData)
+
+# Re-factor to two Factos - California and Michigan
+CAMIRecessionData$state <- CAMIRecessionData$state %>% as.factor()
+
+```
+
+Where and When?
+=====================================
+Column {data-width=600}
+-------------------------------------
+
+### New Private Housing Contracts
+
+```{r}
+#Now let's start by creating the plots from the first Tableau Dashboard
+
+#Let's start with an Area Plot of New Private Housing Contracts
+
+newp_area <- ggplot(CAMIRecessionData, aes(x=date,
+	   	y = new_private_housing_structures_authorized_by_building_permits_units, fill = state)) +
+	geom_area(alpha = 0.6, na.rm = T) +
+	scale_fill_viridis(discrete = T) +
+	labs(title = "New Private Housing Contracts",
+		 x = "Year",
+		 y = "New Private Housing Structures Authorized by
+		 Building Permits (Units)",
+		 fill = "State")
+
+ggplotly(newp_area, tootltip='text', originalData = F)
+
+```
+
+```{r CALI_H, include = FALSE, echo = FALSE, message = FALSE}
+#California
+
+HousingData <- RecessionData %>%
+	filter(state == 'California') %>%
+	group_by(year) %>%
+	summarise(new_housing = sum(new_private_housing_structures_authorized_by_building_permits_units, na.rm = T)) %>%
+	mutate(pct_change = (new_housing/lag(new_housing) - 1) * 100) %>%
+	filter(!year >= 2020) %>%
+	drop_na()
+
+
+pc_cali <- ggplot(HousingData, aes(x = year, y = pct_change)) +
+	geom_bar(stat = 'identity', aes(fill=pct_change)) +
+	scale_fill_gradient2_tableau('pct_change', palette = "Orange-Blue Diverging") +
+	coord_flip() +
+	labs(title = "California",
+		 x = "Year",
+		 y = "% Change in New Private Housing Contracts",
+		 		 fill = "Percent Change") +
+	theme(legend.position = 'none')
+
+pc_cali
+```
+
+```{r Fl_H, include = FALSE, echo = FALSE, message = FALSE}
+#Florida
+
+HousingData <- RecessionData %>%
+	filter(state == 'Florida') %>%
+	group_by(year) %>%
+	summarise(new_housing = sum(new_private_housing_structures_authorized_by_building_permits_units, na.rm = T)) %>%
+	mutate(pct_change = (new_housing/lag(new_housing) - 1) * 100) %>%
+	filter(!year >= 2020) %>%
+	drop_na()
+
+
+pc_flor <- ggplot(HousingData, aes(x = year, y = pct_change)) +
+	geom_bar(stat = 'identity', aes(fill=pct_change)) +
+	scale_fill_gradient2_tableau('pct_change', palette = "Orange-Blue Diverging") +
+	coord_flip() +
+	labs(title = "Florida",
+		 x = "Year",
+		 y = "% Change in New Private Housing Contracts",
+		 		 fill = "Percent Change") +
+	theme(legend.position = 'none')
+
+pc_flor
+```
+
+```{r mass_H, include = FALSE, echo = FALSE, message = FALSE}
+#Mass
+
+HousingData <- RecessionData %>%
+	filter(state == 'Massachusetts') %>%
+	group_by(year) %>%
+	summarise(new_housing = sum(new_private_housing_structures_authorized_by_building_permits_units, na.rm = T)) %>%
+	mutate(pct_change = (new_housing/lag(new_housing) - 1) * 100) %>%
+	filter(!year >= 2020) %>%
+	drop_na()
+
+pc_mass <- ggplot(HousingData, aes(x = year, y = pct_change)) +
+	geom_bar(stat = 'identity', aes(fill=pct_change)) +
+	scale_fill_gradient2_tableau('pct_change', palette = "Orange-Blue Diverging") +
+	coord_flip() +
+	labs(title = "Massachusetts",
+		 x = "Year",
+		 y = "% Change in New Private Housing Contracts",
+		 		 fill = "Percent Change") +
+	theme(legend.position = 'none')
+
+pc_mass
+
+```
+
+```{r nc_H, include = FALSE, echo = FALSE, message = FALSE}
+#NC
+
+HousingData <- RecessionData %>%
+	filter(state == 'North Carolina') %>%
+	group_by(year) %>%
+	summarise(new_housing = sum(new_private_housing_structures_authorized_by_building_permits_units, na.rm = T)) %>%
+	mutate(pct_change = (new_housing/lag(new_housing) - 1) * 100) %>%
+	filter(!year >= 2020) %>%
+	drop_na()
+
+
+pc_nc <- ggplot(HousingData, aes(x = year, y = pct_change)) +
+	geom_bar(stat = 'identity', aes(fill=pct_change)) +
+	scale_fill_gradient2_tableau('pct_change', palette = "Orange-Blue Diverging") +
+	coord_flip() +
+	labs(title = "North Carolina",
+		 x = "Year",
+		 y = "% Change in New Private Housing Contracts",
+		 		 fill = "Percent Change") +
+	theme(legend.position = 'none')
+
+pc_nc
+
+```
+
+### New Private Housing Contracts (% Change)
+```{r}
+#Grouping them together
+grid.arrange(pc_cali, pc_flor, pc_nc, pc_mass, nrow = 2)
+
+```
+
+Column {data-width=400}
+-------------------------------------
+### New Private Housing Contracts (%Change All)
+```{r}
+new_house <- RecessionData %>%
+	group_by(state, year) %>%
+	arrange(year) %>%
+	summarise(new_houses = sum(new_private_housing_structures_authorized_by_building_permits_units, na.rm = T)) %>%
+	mutate(pct_change = (new_houses/lag(new_houses) - 1) * 100) %>%
+	filter(!year >= 2020) %>%
+	drop_na() %>%
+	rename(State = state, Year = year, YoY_Change = pct_change)
+
+
+new_house %>% 
+  arrange(YoY_Change) %>% 
+  head(1000) %>% 
+  select(State, Year, YoY_Change) %>% 
+  DT::datatable(options = list(pageLength=100)) %>%
+  formatPercentage(columns = 'YoY_Change') %>% 
+  formatStyle(.,    'YoY_Change',
+    background = styleColorBar(new_house$YoY_Change, 'steelblue'),
+    backgroundSize = '100% 90%',
+    backgroundRepeat = 'no-repeat',
+    backgroundPosition = 'center'
+  )
+```
+
+Home Vacancy Map {data-orientation=rows}
+=====================================
+
+Row {data-height=600}
+-------------------------------------
+### Recession
+```{r}
+#Let's Move on to a map of Home Vacancy Rates
+
+if (!require("USAboundaries")) install.packages("USABoundaries")
+library(USAboundaries)
+if (!require("sf")) install.packages("sf")
+library(sf)
+
+#setup base layer
+states <- us_states()
+states <- states %>%
+	filter(!name %in% c('Alaska', 'Hawaii', 'Puerto Rico', 'District of Columbia'))
+
+HousingData <- RecessionData %>%
+	filter(period == "Recession") %>%
+	group_by(state) %>%
+	summarise(MeanVacancy = mean(home_vacancy_rate_percent, na.rm = T))
+
+HousingData$name <- HousingData$state
+
+merged_data <-left_join(states, HousingData[, c('name', 'MeanVacancy')], by='name')
+
+vacancy_du <- ggplot(merged_data) +
+	geom_sf(aes(fill = MeanVacancy)) +
+		scale_fill_gradient2_tableau('MeanVacancy', palette = "Orange-Blue Diverging") +
+	labs(title = "Mean Vacancy Rate (2007-2009)")
+
+ggplotly(vacancy_du)
+```
+Row {data-height=400}
+-------------------------------------
+### Pre-Recession
+```{r}
+HousingData <- RecessionData %>%
+	filter(period == "Pre-Recession") %>%
+	group_by(state) %>%
+	summarise(MeanVacancy = mean(home_vacancy_rate_percent, na.rm = T))
+
+HousingData$name <- HousingData$state
+
+merged_data <-left_join(states, HousingData[, c('name', 'MeanVacancy')], by='name')
+
+vacancy_pre <- ggplot(merged_data) +
+	geom_sf(aes(fill = MeanVacancy)) +
+		scale_fill_gradient2_tableau('MeanVacancy', palette = "Orange-Blue Diverging") +
+	labs(title = "Mean Vacancy Rate (2000-2007)")
+
+ggplotly(vacancy_pre)
+```
+
+### Post-Recession
+```{r}
+HousingData <- RecessionData %>%
+	filter(period == "Post-Recession") %>%
+	group_by(state) %>%
+	summarise(MeanVacancy = mean(home_vacancy_rate_percent, na.rm = T))
+
+HousingData$name <- HousingData$state
+
+merged_data <-left_join(states, HousingData[, c('name', 'MeanVacancy')], by='name')
+
+vacancy_po <- ggplot(merged_data) +
+	geom_sf(aes(fill = MeanVacancy)) +
+		scale_fill_gradient2_tableau('MeanVacancy', palette = "Orange-Blue Diverging") +
+	labs(title = "Mean Vacancy Rate (2010-2017)")
+	
+ggplotly(vacancy_po)
+```
+
+Who?
+=====================================
+### Home Vacancy
+```{r}
+home_va <- ggplot(CAMIRecessionData, aes(x = year, y = home_vacancy_rate_percent)) +
+	geom_smooth(aes(color=state), se = F, na.rm = T) +
+	scale_color_viridis(discrete = T) +
+	labs(title = "Home Vacancy",
+		 x = "Year",
+		 y = "Home Vacancy Rate (%)",
+		 color = "State")
+home_va
+```
+
+### Home Ownership
+```{r}
+home_ow <- ggplot(CAMIRecessionData, aes(x = year, y = home_ownership_rate_percent)) +
+	geom_smooth(aes(color=state), se = F, na.rm = T) +
+	scale_color_viridis(discrete = T) +
+	labs(title = "Home Ownership",
+		 x = "Year",
+		 y = "Home Ownership Rate (%)",
+		 color = "State")
+home_ow
+```
+
+```{r Grouped Grid, include = FALSE, echo = FALSE, message = FALSE}
+#Grouping it together
+
+grid.arrange(home_va,home_ow, ncol = 1)
+```
+
+Waitress Index
+=====================================
+
+### Employees
+```{r}
+
+#Filter the years
+restaurant <- CAMIRecessionData %>%
+	filter( year < 2016 & year > 2005)
+
+
+ggplot(restaurant, aes(x=year, fill = state)) +
+	geom_bar(stat = 'identity', aes(y = all_employees_leisure_and_hospitality_food_service_and_drinking_places_in_thousands), na.rm = T) +
+	scale_fill_viridis(discrete = T) +
+	facet_grid(~state) +
+		labs(title = "Employees Food Service",
+		 x = "Year",
+		 y = "Number Employees (thousands)") +
+	theme(legend.position = 'none',
+		  axis.text.x = element_text(angle = 90))
+```
+
+### Earnings
+```{r}
+
+#Calculate the mean
+restaurant <- CAMIRecessionData %>%
+	filter( year < 2016 & year > 2005) %>%
+	group_by(state, year) %>%
+	summarise(sum_food = sum(accomodation_and_food_service_earnings_in_thousands, na.rm = T), sum_employees = sum(all_employees_leisure_and_hospitality_food_service_and_drinking_places_in_thousands, na.rm = T), food_earnings = sum_food/sum_employees)
+
+ggplot(restaurant, aes(x=year, fill = state)) +
+	geom_bar(stat = 'identity', aes(y = food_earnings), na.rm = T) +
+	scale_fill_viridis(discrete = T) +
+	scale_y_continuous(labels = dollar) +
+	facet_grid(~state) +
+		labs(title = " Food Service Earnings",
+		 x = "Year",
+		 y = "Average Annual Earnigns Per Worker") +
+	theme(legend.position = 'none',
+		  axis.text.x = element_text(angle = 90))
+```
+
+Education {data-orientation=rows}
+=====================================
+
+Row {data-height=600}
+-------------------------------------
+### Graduate or Professional
+```{r}
+#Grad Degree
+ggplot(CAMIRecessionData, aes(x=year, color = state)) +
+	geom_smooth(aes(y = people_25_and_older_who_have_competed_a_graduate_or_professional_degree_percent), na.rm = T, se = F) +
+	scale_color_viridis(discrete = T) +
+		labs(title = "Percent of People 25 and older with a Graduate or Professional Degree",
+		 x = "Year",
+		 y = "Percent")
+```
+
+Row {data-height=400}
+-------------------------------------
+### Bachelor
+```{r}
+#Bachelor's
+ggplot(CAMIRecessionData, aes(x=year, color = state)) +
+	geom_smooth(aes(y = bachelors_degree_or_higher_percent), na.rm = T, se = F) +
+	scale_color_viridis(discrete = T) +
+		labs(title = "Percent of People with a Bachelor's Degree (or Higher)",
+		 x = "Year",
+		 y = "Percent")
+```
+
+### High School
+```{r}
+#High School
+ggplot(CAMIRecessionData, aes(x=year, color = state)) +
+	geom_smooth(aes(y = high_school_graduate_or_higher_percent), na.rm = T, se = F) +
+	scale_color_viridis(discrete = T) +
+		labs(title = "Percent of People that Graduated High School",
+		 x = "Year",
+		 y = "Percent")
+```
+
+Entrepreneurship
+=====================================
+
+Row {data-height=600}
+-------------------------------------
+
+### Business Formations
+```{r}
+#Business Formations
+ggplot(CAMIRecessionData, aes(x=year, color = state)) +
+	geom_smooth(aes(y = business_formation_within_four_quarters), na.rm = T, se = F) +
+	scale_color_viridis(discrete = T) +
+		labs(title = "Business Formations within 4 Quarters",
+		 x = "Year",
+		 y = "Business Formations",
+		 fill = "State")
+	
+```
+
+Row {data-height=400}
+-------------------------------------
+### Business Applications
+```{r}
+#NC / MA
+NCMARecessionData <- CAMIRecessionData %>%
+	filter(state == 'North Carolina' |
+		   	state == 'Massachusetts')
+
+
+ggplot(NCMARecessionData, aes(x=date,
+	   	y = business_applications, fill = state)) +
+	stat_smooth(geom = 'area', alpha = 0.6, na.rm = T, span = 1/4) +
+	scale_fill_manual(values = c("#35B779FF", "#FDE725FF")) +
+	facet_grid(~state)+
+	labs(title = "Business Applications",
+		 x = "Year",
+		 y = "Business Applications",
+		 fill = "State")
+```
+
+### Business Applications
+```{r}
+#CA / FL
+CAFLRecessionData <- CAMIRecessionData %>%
+	filter(state == 'California' |
+		   	state == 'Florida')
+
+ggplot(CAFLRecessionData, aes(x=date,
+	   	y = business_applications, fill = state)) +
+	stat_smooth(geom = 'area', alpha = 0.6, na.rm = T, span = 1/4) +
+	scale_fill_manual(values = c("#440154FF", "#31688EFF")) +
+	facet_grid(~state)+
+	labs(title = "Business Applications",
+		 x = "Year",
+		 y = "Business Applications",
+		 fill = "State")
+
+```

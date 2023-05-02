@@ -1,0 +1,10 @@
+name: Publish Document
+title:
+username:
+account: rpubs
+server: rpubs.com
+hostUrl: rpubs.com
+appId: https://api.rpubs.com/api/v1/document/750703/e6059531b4db48e69b38be5cc4cbb871
+bundleId: https://api.rpubs.com/api/v1/document/750703/e6059531b4db48e69b38be5cc4cbb871
+url: http://rpubs.com/lindberg_ag/750703
+when: 1617751675.00827
